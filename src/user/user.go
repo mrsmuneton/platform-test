@@ -5,6 +5,7 @@ import (
 
 	"github.com/mrsmuneton/platform-test/src/db"
 	"github.com/mrsmuneton/platform-test/src/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Error struct {
@@ -19,6 +20,18 @@ type User struct {
 	Email           string `email`
 	Name            string `name`
 	UpdatedDate     string `updatedDate` //cheating by a string, this must be a timestamp
+}
+
+func BcryptEncrypt(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func BcryptMatchPassword(storedHash string, enteredPassword string) bool {
+	if err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(enteredPassword)); err != nil {
+		return false
+	}
+	return true
 }
 
 func CreateUser(newUser User) bool {

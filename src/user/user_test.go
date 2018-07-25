@@ -9,6 +9,18 @@ func getUserStub() User {
 	return User{CurrentPassword: "P0werpuff", Email: "cinnamon@nice.com", Name: "Ray May"}
 }
 
+func TestBryptEncryptDecrypt(t *testing.T) {
+	password := "thisisMyPASS123!"
+	hash, err := BcryptEncrypt(password)
+	if err != nil {
+		t.Error("Password encryption resulted in unexpected error")
+	}
+	decrypted := BcryptMatchPassword(hash, password)
+	if decrypted == false {
+		t.Error("Password decryption error")
+	}
+}
+
 func TestCreateUserReturnsSuccess(t *testing.T) {
 	var userStub = getUserStub()
 	var error = CreateUser(userStub)
