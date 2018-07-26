@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/mrsmuneton/platform-test/src/db"
 	"github.com/mrsmuneton/platform-test/src/utils"
@@ -37,6 +38,11 @@ func BcryptMatchPassword(storedHash string, enteredPassword string) bool {
 func CreateUser(newUser User) bool {
 	var error_result = false
 
+	// _, e := ValidateEmailIsUnique(newUser)
+	// if e.Code != "" {
+	// 	return true
+	// }
+
 	_, e := ValidateUserMinimumFields(newUser)
 	if e.Code != "" {
 		return true
@@ -48,8 +54,7 @@ func CreateUser(newUser User) bool {
 		error_result = true
 	}
 
-	//The below is defective code and will be removed in the next iteration
-	var password = newUser.CurrentPassword //This must be encrypted with sha256 prior to storing, and should at least implement base64 from the client request
+	password, err := BcryptEncrypt(newUser.CurrentPassword) // TODO: This should implement base64 from the client request
 	t := utils.CurrentTime()
 
 	_, queryerr := dbConnection.Query("INSERT INTO users(created_date, currentpassword, email, name, updated_date) VALUES($1,$2,$3,$4,$5);", t, password, newUser.Email, newUser.Name, t)
@@ -70,7 +75,6 @@ func DeleteUser(id string) bool {
 		error_result = true
 	}
 	query := "DELETE FROM users WHERE id=$1"
-	fmt.Println(query)
 	_, queryerr := dbConnection.Query(query, id)
 	if queryerr != nil {
 		fmt.Println(queryerr)
@@ -88,9 +92,8 @@ func GetUserRecordById(user_id string) (User, bool) {
 		fmt.Println(err)
 		error_result = true
 	}
-	var query = "SELECT id, created_date, email, name, updated_date FROM users WHERE id =" + user_id
-	fmt.Println(query)
-	queryerr := dbConnection.QueryRow(query).Scan(&userRecord.Id, &userRecord.CreatedDate, &userRecord.Email, &userRecord.Name, &userRecord.UpdatedDate)
+	var query = "SELECT id, created_date, email, name, updated_date FROM users WHERE id=$1"
+	queryerr := dbConnection.QueryRow(query, user_id).Scan(&userRecord.Id, &userRecord.CreatedDate, &userRecord.Email, &userRecord.Name, &userRecord.UpdatedDate)
 	if queryerr != nil {
 		fmt.Println(queryerr)
 		error_result = true
@@ -107,7 +110,6 @@ func GetUserRecordByEmail(email string) (User, bool) {
 		error_result = true
 	}
 	var query = "SELECT id, created_date, email, name, updated_date FROM users WHERE email=$1"
-	fmt.Println(query)
 	queryerr := dbConnection.QueryRow(query, email).Scan(&userRecord.Id, &userRecord.CreatedDate, &userRecord.Email, &userRecord.Name, &userRecord.UpdatedDate)
 	if queryerr != nil {
 		fmt.Println(queryerr)
@@ -117,17 +119,19 @@ func GetUserRecordByEmail(email string) (User, bool) {
 }
 
 func LoginUser(userRequest User) (User, bool) {
-	var errorBool = false
 	dbConnection, queryerr := db.DBConnect()
 	var userRecord User
-	var query = "SELECT id, email, name FROM users WHERE currentpassword='" + userRequest.CurrentPassword + "' AND email='" + userRequest.Email + "'"
-	err := dbConnection.QueryRow(query).Scan(&userRecord.Id, &userRecord.Email, &userRecord.Name)
+	var query = "SELECT id, currentpassword, email, name FROM users WHERE email=$1"
+	err := dbConnection.QueryRow(query, userRequest.Email).Scan(&userRecord.Id, &userRecord.CurrentPassword, &userRecord.Email, &userRecord.Name)
 	if queryerr != nil || err != nil {
-		fmt.Println(err)
-		fmt.Println(queryerr)
-		errorBool = true
+		fmt.Println("LoginUser Query Error")
+		return User{}, false
 	}
-	return userRecord, errorBool
+	if BcryptMatchPassword(userRecord.CurrentPassword, userRequest.CurrentPassword) {
+		return userRecord, true
+	} else {
+		return User{}, false
+	}
 }
 
 func UpdateUserFields(user_id string, u User) (User, bool) {
@@ -143,9 +147,8 @@ func UpdateUserFields(user_id string, u User) (User, bool) {
 		error_result = true
 	}
 	var now = utils.CurrentTime()
-	var query = "UPDATE users SET currentpassword='" + u.CurrentPassword + "', email='" + u.Email + "', name='" + u.Name + "', updated_date='" + now + "' WHERE id=" + string(user_id) + "RETURNING id, created_date, email, name, updated_date"
-	fmt.Println(query) //this is unsuitable for production because it prints the users password
-	queryerr := dbConnection.QueryRow(query).Scan(&u.Id, &u.CreatedDate, &u.Email, &u.Name, &u.UpdatedDate)
+	var query = "UPDATE users SET currentpassword=$1, email=$2, name=$3, updated_date=$4 WHERE id=$5 RETURNING id, created_date, email, name, updated_date"
+	queryerr := dbConnection.QueryRow(query, u.CurrentPassword, u.Email, u.Name, now, string(user_id)).Scan(&u.Id, &u.CreatedDate, &u.Email, &u.Name, &u.UpdatedDate)
 	if queryerr != nil {
 		fmt.Println(queryerr)
 		error_result = true
@@ -175,4 +178,24 @@ func ValidateUserMinimumFields(u User) (User, Error) {
 	}
 
 	return u, e
+}
+
+func ValidateEmailIsUnique(email string) bool {
+	var count int
+	dbConnection, err := db.DBConnect()
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	err = dbConnection.QueryRow("SELECT COUNT(*) FROM users WHERE email=$1", email).Scan(&count)
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+
+	if count > 0 {
+		return false
+	}
+	return true
 }
