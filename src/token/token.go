@@ -1,7 +1,6 @@
 package token
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -20,9 +19,6 @@ func CreateUserJWT(u user.User) (string, Error) {
 
 	jwToken := jwt.New(jwt.SigningMethodHS256)
 	claims := jwToken.Claims.(jwt.MapClaims)
-
-	fmt.Println(u)
-	fmt.Println(u.Id)
 
 	week := time.Now().AddDate(0, 0, 7).Unix()
 	claims["expire"] = week

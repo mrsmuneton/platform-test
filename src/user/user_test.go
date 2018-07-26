@@ -48,11 +48,9 @@ func TestGetUserRecordReturnsSuccess(t *testing.T) {
 
 func TestUpdateUserReturnsSuccess(t *testing.T) {
 	var userStub = getUserStub()
-	var userRecord, err = GetUserRecordByEmail(userStub.Email)
+	userRecord, _ := GetUserRecordByEmail(userStub.Email)
 	id := strconv.Itoa(userRecord.Id)
-	var updatedUser, err1 = UpdateUserFields(id, userStub)
-	t.Log(updatedUser)
-	t.Log(err)
+	_, err1 := UpdateUserFields(id, userStub)
 	if err1 != false {
 		t.Error("Update user returned unexpected error	")
 	}
@@ -88,5 +86,14 @@ func TestValidateMinimumFieldsPresentReturnsUser(t *testing.T) {
 	}
 	if userStub != u {
 		t.Error("Unexpected User Mutation")
+	}
+}
+
+func TestValidateEmailIsUnique(t *testing.T) {
+	email := "uniqueemail1@test.com"
+
+	unique := ValidateEmailIsUnique(email)
+	if unique != true {
+		t.Error("ValidateEmailIsUnique encountered unexpected result")
 	}
 }
