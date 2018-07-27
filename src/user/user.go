@@ -38,10 +38,10 @@ func BcryptMatchPassword(storedHash string, enteredPassword string) bool {
 func CreateUser(newUser User) bool {
 	var error_result = false
 
-	// _, e := ValidateEmailIsUnique(newUser)
-	// if e.Code != "" {
-	// 	return true
-	// }
+	isNewEmail := ValidateEmailIsUnique(newUser.Email)
+	if isNewEmail != true {
+		return true
+	}
 
 	_, e := ValidateUserMinimumFields(newUser)
 	if e.Code != "" {
@@ -118,19 +118,21 @@ func GetUserRecordByEmail(email string) (User, bool) {
 	return userRecord, error_result
 }
 
-func LoginUser(userRequest User) (User, bool) {
+func LoginSuccess(userRequest User) (User, bool) {
 	dbConnection, queryerr := db.DBConnect()
 	var userRecord User
 	var query = "SELECT id, currentpassword, email, name FROM users WHERE email=$1"
 	err := dbConnection.QueryRow(query, userRequest.Email).Scan(&userRecord.Id, &userRecord.CurrentPassword, &userRecord.Email, &userRecord.Name)
 	if queryerr != nil || err != nil {
-		fmt.Println("LoginUser Query Error")
-		return User{}, false
+		fmt.Println("LoginSuccess Query Error")
+		return User{}, true
 	}
 	if BcryptMatchPassword(userRecord.CurrentPassword, userRequest.CurrentPassword) {
-		return userRecord, true
+		fmt.Println("bcrypt hit!")
+		return userRecord, false
 	} else {
-		return User{}, false
+		fmt.Println("bcrypt misssss")
+		return User{}, true
 	}
 }
 
