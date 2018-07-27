@@ -3,6 +3,7 @@ package user
 import (
 	"strconv"
 	"testing"
+	"time"
 )
 
 func getUserStub() User {
@@ -23,6 +24,8 @@ func TestBryptEncryptDecrypt(t *testing.T) {
 
 func TestCreateUserReturnsSuccess(t *testing.T) {
 	var userStub = getUserStub()
+	ts := time.Now()
+	userStub.Email = userStub.Email + ts.String()
 	var error = CreateUser(userStub)
 	if error != false {
 		t.Error("CreateUser returned unexpected error	")
