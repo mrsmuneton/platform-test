@@ -22,12 +22,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unexpected login request decoding result"))
 	}
 
-	userRecord, err := user.LoginUser(userRequest)
-	if err == true {
+	userRecord, loginSuccess := user.LoginSuccess(userRequest)
+	if loginSuccess == true {
 		w.Write([]byte("login error"))
 	}
 
-	if err == false {
+	if loginSuccess == false {
 		token, _ := token.CreateUserJWT(userRecord)
 		t := utils.CurrentTime()
 		newSession := session.Session{Email: userRecord.Email, Token: token, UpdatedDate: t}
