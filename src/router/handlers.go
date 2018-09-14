@@ -14,6 +14,11 @@ import (
 	"github.com/mrsmuneton/platform-test/src/utils"
 )
 
+func HomeViewHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("hi ray")
+	w.Write([]byte("Thanks for loading this up!"))
+}
+
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var userRequest user.User
 	var err bool

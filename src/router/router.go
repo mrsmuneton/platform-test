@@ -1,8 +1,6 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/gorilla/mux"
 )
 
@@ -15,7 +13,7 @@ func Routes() *mux.Router {
 	r.HandleFunc("/user", UserRecordHandler).Methods("POST")       //if WRITE right from jwt
 	r.HandleFunc("/user", UserRecordHandler).Methods("PUT, PATCH") //if WRITE right from jwt
 	r.HandleFunc("/user", UserRecordHandler).Methods("DELETE")     //if DELETE right from jwt
-	http.Handle("/", r)
+	r.HandleFunc("/", HomeViewHandler)
 
 	return r
 }
